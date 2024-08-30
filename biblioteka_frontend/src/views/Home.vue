@@ -2,6 +2,8 @@
 import { onMounted, ref } from 'vue';
 import Colecao from './colecao/Colecao.vue';
 import Autor from './autor/Autor.vue';
+import Livro from './livro/Livro.vue';
+import Leitor from './leitor/Leitor.vue';
 
 const selectedTab = ref('colecoes');
 
@@ -45,6 +47,12 @@ onMounted(() => {
                     </div>
                     <div v-if="selectedTab === 'autores'">
                      <Autor />
+                    </div>
+                    <div v-if="selectedTab === 'livros'">
+                     <Livro />
+                    </div>
+                    <div v-if="selectedTab === 'leitores'">
+                     <Leitor />
                     </div>
                 </v-col>
             </v-row>

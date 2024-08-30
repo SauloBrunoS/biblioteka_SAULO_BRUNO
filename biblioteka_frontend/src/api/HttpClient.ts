@@ -29,9 +29,10 @@ httpClient.interceptors.response.use(
     return response
   },
   (error) => {
+    console.log(error)
     const notificationStore = useNotificationStore()
     let complementoErro = ''
-    complementoErro = error.response.data.userMessage
+    complementoErro = error.response.data?.userMessage
 
     notificationStore.notificar({
       mensagem: `Erro: Ação não concluída! ${complementoErro}`,

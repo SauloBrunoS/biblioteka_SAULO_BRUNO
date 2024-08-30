@@ -1,14 +1,12 @@
 <script lang="ts" setup>
-import {reactive, watch } from "vue";
+import { reactive, watch } from "vue";
 import { Form, Field } from 'vee-validate';
 import { useNotificationStore } from '@/stores/Notification';
 import { Autor } from '@/types';
 import AutorService from "@/api/AutorService";
 import { Nacionalidade } from "@/types/enum";
 import dayjs from 'dayjs';
-import VueDatePicker from '@vuepic/vue-datepicker';
-import { pt } from "date-fns/locale"
-
+import DatePicker from '@/components/DatePicker.vue';
 const emit = defineEmits(['submitted', 'canceled'])
 
 const props = defineProps<{
@@ -55,7 +53,6 @@ async function onSubmit(values: any, actions: any) {
     } else {
         try {
             values.dataNascimento = dayjs(state.autor.dataNascimento).format("YYYY-MM-DD");
-            console.log(values)
             await AutorService.create(values);
         } catch (err) {
             console.error("Erro ao cadastrar novo autor:", err);
@@ -87,14 +84,6 @@ function createOptions<T>(enumObject: T) {
 
 const nacionalidadeOptions = createOptions(Nacionalidade)
 
-const format = (date: Date) => {
-  const day = date.getDate();
-  const month = date.getMonth() + 1;
-  const year = date.getFullYear();
-
-  return `Selected date is ${day}/${month}/${year}`;
-}
-
 </script>
 
 <template>
@@ -123,10 +112,12 @@ const format = (date: Date) => {
                                         item-value="value" label="Nacionalidade" variant="outlined"></v-autocomplete>
                                 </Field>
                             </v-col>
-                            <v-col cols="4" class="mt-2">
+                            <v-col cols="4">
                                 <Field name="dataNascimento" v-model="state.autor.dataNascimento"
                                     v-slot="{ field, errors }">
-                                    <VueDatePicker :error-messages="errors" :min-date="null" v-bind="field" :format-locale="pt" placeholder="Selecione Data de Nascimento" v-model="state.autor.dataNascimento" :format="format" />
+                                    <date-picker v-model="state.autor.dataNascimento" v-bind="{ field }"
+                                        :error-messages="errors" label="Data de Nascimento"
+                                        @update:modelValue="(newValue) => state.autor.dataNascimento = newValue" />
                                 </Field>
                             </v-col>
                         </v-row>

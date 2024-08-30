@@ -1,25 +1,24 @@
 <script setup lang="ts">
 import type { Pagination } from '../../api/adapters/BaseAdapters';
-import type { Autor, InfoDataTableServer } from '../../types';
+import type { InfoDataTableServer, Leitor } from '../../types';
 import type { DataTableHeader } from '../../types/vuetify';
 import { reactive, watchEffect } from 'vue';
 import { useNotificationStore } from '../../stores/Notification';
 import DialogDelete from '@/components/DialogDelete.vue';
-import AutorService from '@/api/AutorService';
-import AutorForm from './AutorForm.vue';
-import { Nacionalidade } from '@/types/enum';
-import dayjs from 'dayjs';
-import AutorDetalhes from './AutorDetalhes.vue';
+import LeitorService from '@/api/LeitorService';
+import LeitorEmprestimos from './LeitorEmprestimos.vue';
+import LeitorForm from './LeitorForm.vue';
 
 const constant: {
-    cabecalhoAutores: DataTableHeader[];
+    cabecalhoLeitores: DataTableHeader[];
     itemsPerPageOptions: any[];
     notificationStore: any;
 } = {
-    cabecalhoAutores: [
+    cabecalhoLeitores: [
         { title: "Nome Completo", align: "center", key: "nomeCompleto", sortable: true },
-        { title: "Data de Nascimento", align: "center", key: "dataNascimento", sortable: true },
-        { title: "Nacionalidade", align: "center", key: "nacionalidade", sortable: true },
+        { title: "CPF", align: "center", key: "cpf", sortable: true },
+        { title: "E-mail", align: "center", key: "email", sortable: true },
+        { title: "Telefone", align: "center", key: "telefone", sortable: true },
         { title: "", align: "center", key: "id", sortable: false }
     ],
     itemsPerPageOptions: [
@@ -37,26 +36,27 @@ const state = reactive({
     search: "" as string,
     dialogVisible: false as boolean,
     dialogDelete: false,
-    listaAutores: [] as Autor[],
+    listaLeitores: [] as Leitor[],
     infoDataTableServer: {} as InfoDataTableServer,
-    idAutor: null as unknown as number,
-    nacionalidade: null as unknown as keyof typeof Nacionalidade,
-    exibirDetalhesAutor: false as boolean
+    idLeitor: null as unknown as number,
+    exibirEmprestimosLeitor: false as boolean,
 })
 
 function loadItems({ search, page, itemsPerPage, sortBy }: InfoDataTableServer) {
     state.infoDataTableServer = { page, itemsPerPage, sortBy, search }
-    AutorService.findSearch(page, itemsPerPage, sortBy, search, state.nacionalidade)
-        .then(({ items: autores, pagination: page }) => {
-            state.listaAutores = autores
+    LeitorService.findSearch(page, itemsPerPage, sortBy, search)
+        .then(({ items: leitores, pagination: page }) => {
+            state.listaLeitores = leitores
             state.pagination.page = page.pageable.number
             state.pagination.total = page.totalElements
             state.pagination.pageCount = page.totalPages
         });
 }
+
 watchEffect(() => {
     loadItems(state.infoDataTableServer);
 })
+
 function atualizar() {
     loadItems(state.infoDataTableServer);
 }
@@ -74,73 +74,76 @@ function atualizarDialogDelete() {
     state.dialogDelete = !state.dialogDelete;
 }
 
-function abrirDialogForm(idAutor: number) {
-    state.idAutor = idAutor;
+function abrirDialogForm(idLeitor: number) {
+    state.idLeitor = idLeitor;
     state.dialogVisible = true;
 }
 
 function abrirDialogDelete(id: number) {
-    state.idAutor = id;
+    state.idLeitor = id;
     atualizarDialogDelete();
 }
 
 async function deletarItem(id: number) {
     try {
-        await AutorService.delete(id);
+        await LeitorService.delete(id);
         loadItems(state.infoDataTableServer);
         atualizarDialogDelete();
-        constant.notificationStore.notificar({ mensagem: "Autor excluído com sucesso", tipoMensagem: "success", visibilidade: true })
+        constant.notificationStore.notificar({ mensagem: "Leitor excluído com sucesso", tipoMensagem: "success", visibilidade: true })
     } catch (err) {
-        constant.notificationStore.notificar({ mensagem: "Erro ao excluir o autor!", tipoMensagem: "error", visibilidade: true })
+        constant.notificationStore.notificar({ mensagem: "Erro ao excluir o leitor!", tipoMensagem: "error", visibilidade: true })
     }
 }
-
-function createOptions<T>(enumObject: T) {
-    return Object.keys(enumObject).map(key => ({
-        text: enumObject[key as keyof T],
-        value: key === "NENHUM" ? null : key
-    }));
+function exibirEmprestimosLeitor(idLeitor: number) {
+    state.exibirEmprestimosLeitor = true;
+    state.idLeitor = idLeitor;
 }
 
-const nacionalidadeOptions = createOptions(Nacionalidade)
-
-function exibirDetalhesAutor(idAutor: number) {
-  state.exibirDetalhesAutor = true;
-  state.idAutor = idAutor;
-}
-
-const voltarParaAutores = () => {
-  state.exibirDetalhesAutor = false;
+const voltarParaLeitores = () => {
+    state.exibirEmprestimosLeitor = false;
 };
 
+function formatarCPF(cpf: string): string {
+  const formattedCPF = cpf.replace(
+    /(\d{3})(\d{3})(\d{3})(\d{2})/,
+    '$1.$2.$3-$4'
+  );
+  return formattedCPF;
+}
+
+function formatarTelefone(telefone: string): string {
+  const formattedTelefone = telefone.replace(
+    /(\d{2})(\d{5})(\d{4})/,
+    '($1) $2-$3'
+  );
+  return formattedTelefone;
+}
 
 </script>
 
 <template>
-    <autor-detalhes v-if="state.exibirDetalhesAutor" :autor-id="state.idAutor"
-    @voltar-para-autores="voltarParaAutores()" />
-   
+    
+    <leitor-emprestimos v-if="state.exibirEmprestimosLeitor" :dialog-visible="state.dialogVisible" :leitor-id="state.idLeitor" @submitted="atualizarQuandoFormEnviado"
+        @canceled="fecharModal" @voltar-para-leitores="voltarParaLeitores" />
+
     <v-card-text v-else>
-        <v-data-table-server :search="state.search" :headers="constant.cabecalhoAutores" :items="state.listaAutores"
+        <v-data-table-server :search="state.search" :headers="constant.cabecalhoLeitores" :items="state.listaLeitores"
             :items-per-page="state.pagination.pageSize" :items-length="state.pagination.total"
             :items-per-page-options="constant.itemsPerPageOptions" @update:options="loadItems">
             <template v-slot:top>
                 <div class="d-flex justify-start align-center">
                     <v-text-field bg-color="background" class="mr-2 ml-2 mb-4 mt-4 w-50" v-model.trim="state.search"
-                        :flat="true" label="Filtrar Autores" hide-details variant="solo" single-line>
+                        :flat="true" label="Filtrar Leitores" hide-details variant="solo" single-line>
                         <template #prepend-inner>
                             <div class="icon-container">
                                 <v-icon>mdi-magnify</v-icon>
                             </div>
                         </template>
                     </v-text-field>
-                    <v-autocomplete class="mt-6" label="Filtrar por Nacionalidade" variant="outlined"
-                        :items="nacionalidadeOptions" item-title="text" item-value="value"
-                        v-model="state.nacionalidade" />
                     <div class="mr-4">
                         <v-btn class="mx-2 px-2 py-7 d-flex justify-content align-center" color="blue" elevation="0"
                             @click="abrirDialogForm(null as unknown as number)">
-                            Adicionar autor
+                            Adicionar leitor
                         </v-btn>
                     </div>
                 </div>
@@ -148,14 +151,14 @@ const voltarParaAutores = () => {
             <template v-slot:item="{ item }">
                 <tr class="text-center">
                     <td>{{ item.nomeCompleto }}</td>
-                    <td>{{ dayjs(item.dataNascimento).format("DD/MM/YYYY") }}</td>
-                    <td>{{ Nacionalidade[item.nacionalidade as keyof typeof Nacionalidade] }}</td>
+                    <td>{{ formatarCPF(item.cpf) }}</td>
+                    <td>{{ item.usuario.email }}</td>
+                    <td>{{ formatarTelefone(item.telefone) }}</td>
                     <td>
-                        <v-tooltip text="Detalhes do Autor" location="top">
+                        <v-tooltip text="Empréstimos" location="top">
                             <template v-slot:activator="{ props }">
-                                <v-btn-details
-                                    @click="exibirDetalhesAutor(item.id)"
-                                    v-bind="props"></v-btn-details>
+                                <v-btn icon="mdi-book" variant="text" color="info" @click="exibirEmprestimosLeitor(item.id)"
+                                    v-bind="props"></v-btn>
                             </template>
                         </v-tooltip>
                         <v-tooltip text="Editar" location="top">
@@ -175,10 +178,11 @@ const voltarParaAutores = () => {
         </v-data-table-server>
     </v-card-text>
 
-    <dialog-delete v-model:dialog-visible="state.dialogDelete" @canceled="atualizarDialogDelete()"
-        @submitted="deletarItem(state.idAutor)"
-        :descricao="`Você tem certeza que deseja excluir esse autor?`"></dialog-delete>
+    <leitor-form :dialog-visible="state.dialogVisible" :leitor-id="state.idLeitor"
+    @submitted="atualizarQuandoFormEnviado" @canceled="fecharModal" />
 
-    <autor-form :dialog-visible="state.dialogVisible" :autor-id="state.idAutor" @submitted="atualizarQuandoFormEnviado"
-        @canceled="fecharModal" />
+    <dialog-delete v-model:dialog-visible="state.dialogDelete" @canceled="atualizarDialogDelete()"
+        @submitted="deletarItem(state.idLeitor)"
+        :descricao="`Você tem certeza que deseja excluir esse leitor?`"></dialog-delete>
+
 </template>

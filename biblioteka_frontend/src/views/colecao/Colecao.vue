@@ -7,6 +7,7 @@ import { useNotificationStore } from '../../stores/Notification';
 import ColecaoService from '../../api/ColecaoService';
 import ColecaoForm from './ColecaoForm.vue';
 import DialogDelete from '@/components/DialogDelete.vue';
+import ColecaoDetalhes from './ColecaoDetalhes.vue';
 
 const constant: {
     cabecalhoColecoes: DataTableHeader[];
@@ -14,8 +15,8 @@ const constant: {
     notificationStore: any;
 } = {
     cabecalhoColecoes: [
-        { title: "Nome", key: "nome", sortable: true },
-        { title: "Descrição", key: "descricao", sortable: true },
+        { title: "Nome", key: "nome", align: "center", sortable: true },
+        { title: "Descrição", key: "descricao", align: "center", sortable: true },
         { title: "", key: "id", sortable: false }
     ],
     itemsPerPageOptions: [
@@ -35,7 +36,8 @@ const state = reactive({
     dialogDelete: false,
     listaColecoes: [] as Colecao[],
     infoDataTableServer: {} as InfoDataTableServer,
-    idColecao: null as unknown as number
+    idColecao: null as unknown as number,
+    exibirDetalhesColecao: false as boolean
 })
 
 function loadItems({ search, page, itemsPerPage, sortBy }: InfoDataTableServer) {
@@ -87,17 +89,28 @@ async function deletarItem(id: number) {
     }
 }
 
+function exibirDetalhesColecao(idColecao: number) {
+  state.exibirDetalhesColecao = true;
+  state.idColecao = idColecao;
+}
+
+const voltarParaColecoes = () => {
+  state.exibirDetalhesColecao = false;
+};
+
 </script>
 
 <template>
-    <v-card-text>
+  <colecao-detalhes v-if="state.exibirDetalhesColecao" :colecao-id="state.idColecao"
+    @voltar-para-colecoes="voltarParaColecoes()" />
+    <v-card-text v-else>
         <v-data-table-server :search="state.search" :headers="constant.cabecalhoColecoes" :items="state.listaColecoes"
             :items-per-page="state.pagination.pageSize" :items-length="state.pagination.total"
             :items-per-page-options="constant.itemsPerPageOptions" @update:options="loadItems">
             <template v-slot:top>
                 <div class="d-flex justify-start align-center">
                     <v-text-field bg-color="background" class="mr-2 ml-2 mb-4 mt-4 w-50" v-model.trim="state.search"
-                        :flat="true" label="Filtrar" hide-details variant="solo" single-line>
+                        :flat="true" label="Filtrar Coleções" hide-details variant="solo" single-line>
                         <template #prepend-inner>
                             <div class="icon-container">
                                 <v-icon>mdi-magnify</v-icon>
@@ -117,6 +130,14 @@ async function deletarItem(id: number) {
                     <td>{{ item.nome }}</td>
                     <td>{{ item.descricao }}</td>
                     <td>
+                        <v-tooltip text="Detalhes da Coleção" location="top">
+                            <template v-slot:activator="{ props }">
+                                <v-btn-details
+                                    @click="exibirDetalhesColecao(item.id)"
+                                    v-bind="props"></v-btn-details>
+                            </template>
+                        </v-tooltip>
+
                         <v-tooltip text="Editar" location="top">
                             <template v-slot:activator="{ props }">
                                 <v-btn icon="mdi-pencil" variant="text" color="info" @click="abrirDialogForm(item.id)"
@@ -136,7 +157,7 @@ async function deletarItem(id: number) {
 
     <dialog-delete v-model:dialog-visible="state.dialogDelete" @canceled="atualizarDialogDelete()"
         @submitted="deletarItem(state.idColecao)"
-        :descricao="`Você tem certeza que deseja excluir esta procedimento?`"></dialog-delete>
+        :descricao="`Você tem certeza que deseja excluir essa coleção?`"></dialog-delete>
 
     <colecao-form :dialog-visible="state.dialogVisible" :colecao-id="state.idColecao"
         @submitted="atualizarQuandoFormEnviado" @canceled="fecharModal" />

@@ -1,18 +1,74 @@
-import { Nacionalidade } from "./enum"
+import { Nacionalidade, StatusReserva } from "./enum"
 
 export interface Colecao {
-  id: number
-  nome: string
+  id: number,
+  nome: string,
   descricao: string
 }
 
 export interface Autor {
-  id: number
-  nomeCompleto: string
-  dataNascimento: Date,
+  id: number,
+  nomeCompleto: string,
+  dataNascimento: string,
   nacionalidade: keyof typeof Nacionalidade,
-  biografia: string
 }
+
+export interface Livro {
+  id: number,
+  titulo: string,
+  isbn: string
+  dataPublicacao: string,
+  qtdPaginas: number,
+  numeroCopiasTotais:number,
+  numeroCopiasDisponiveis:number,
+  autores: Autor[],
+  colecoes: Colecao[]
+}
+
+export interface Leitor {
+  id: number,
+  nomeCompleto: string,
+  cpf: string,
+  telefone: string,
+  usuario: Usuario
+}
+
+export interface Usuario {
+  id: number,
+  email: string
+}
+
+export interface Emprestimo {
+  id: number;
+  leitor: {
+    cpf: string;
+  };
+  livro: {
+    isbn: string;
+  };
+  dataEmprestimo: string;
+  dataLimite: string; 
+  dataDevolucao?: string; 
+  quantidadeRenovacoes: number;
+  valorBase: number;
+  multa: number;
+  valorTotal: number;
+  devolvido: boolean;
+};
+
+export interface Reserva {
+  id: number;
+  leitor: {
+    cpf: string;
+  };
+  livro: {
+    isbn: string;
+  };
+  dataCadastro: string; 
+  dataLimite: string; 
+  quantidadeRenovacoes: number; 
+  status: keyof typeof StatusReserva; 
+};
 
 export interface InfoDataTableServer {
   id?: number

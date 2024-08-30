@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { Autor } from '@/types'
+import type { Autor, Livro } from '@/types'
 import httpClient from '@/api/HttpClient'
 import { Nacionalidade } from '@/types/enum';
 
@@ -43,6 +43,42 @@ export default {
     try {
       const { data } = await httpClient.get(`/autores/${id}`);
       return data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw new Error(error.response?.data);
+      }
+      throw error;
+    }
+  },
+
+
+  async findSearchLivrosByAutorId(
+    pagina: number,
+    itemPerPage: number,
+    sortBy: [{ key: keyof Livro; order: string }],
+    search: string,
+    autorId: number,
+    colecaoId: number
+  ) {
+    const { data } = await httpClient({
+      method: 'get',
+      url: `/autores/${autorId}/livros`,
+      params: {
+        search: search ?? "",
+        idColecao: colecaoId,
+        page: pagina,
+        size: itemPerPage,
+        sort: `${sortBy?.[0]?.key ?? 'id'},${sortBy?.[0]?.order ?? 'desc'}`,
+      }
+    })
+    const { content: livros, ...page } = data;
+    return { items: livros, pagination: page }
+  },
+
+  async findAllAutoresWithNomeFilter(search: string): Promise<Autor[]> {
+    try {
+      const {data} = await httpClient.get(`autores/search/findAllWithFilter?search=${search}`);
+      return data._embedded.autores;
     } catch (error) {
       if (axios.isAxiosError(error)) {
         throw new Error(error.response?.data);
